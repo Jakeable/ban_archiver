@@ -1,5 +1,5 @@
 # Password files
-.ini
+*.ini
 
 # Log files
-.log
+*.log
