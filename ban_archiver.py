@@ -52,10 +52,10 @@ def read_modmail():
                 if msg.replies: 
                     continue
 
-                reply = ''''If you believe you are banned, please reply to your original ban message.\n\n 
+                reply = '''If you believe you are banned, please reply to your original ban message.\n\n 
                             This can be found [in your inbox](//reddit.com/message/inbox),
-                            and will say "You have been banned from posting to /r/AskReddit [...]."'''
-                reply += '\n\n*This is an automated message. If this message was received incorrectly, please ignore.*'
+                            and will say "You have been banned from posting to /r/AskReddit [...]."\n\n---
+                            \n\n*This is an automated message. If this message was received incorrectly, please ignore.*'''
                 
                 logging.info('Sending reply to user')
                 msg.reply(reply)
