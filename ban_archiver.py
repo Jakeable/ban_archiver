@@ -71,30 +71,24 @@ def main():
             r.login(username, password)
             logging.info('Logging in as {0}'.format(username))
             print('Logged in')
-            r.message('noahjk', 'ban_archiver is running', 'ban_archiver is running')
+            r.send_message('noahjk', 'ban_archiver is running', 'ban_archiver is running')
             break
         except Exception as e:
             logging.error('ERROR: {0}'.format(e))
             print('Unable to log in')
     
-    keep_going = True
-    while keep_going:
+    while True:
         try:
         
             print('Reading modmail')
             read_modmail()
         
-        except HTTPError as e:
+        except HTTPError:
             time.sleep(30)
             continue
-        except (KeyboardInterrupt, SystemExit):
-            keep_going = False
-            logging.info('Ended by user input')
-            pass
-        except Exception as e:
-            logging.error('ERROR: {0}'.format(e))
-            r.send_message('noahjk', 'ban_archiver went down', 'ban_archiver is down. reply with "restart" to restart.')
+        except:
             break
+        break
 
 if __name__ == '__main__':
     main()
