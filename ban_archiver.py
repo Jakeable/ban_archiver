@@ -4,25 +4,22 @@
 #                                                                     #
 # This bot is designed to do the following:                           #
 #                                                                     #
-#   1. Read modmail and look for "you've been banned" threads         #
-#   2. Save link to thread and user banned                            #
-#   3. Look for user-started modmail threads with 'banned' in title   #
-#   4. Reply with link to original ban thread OR ask user to reply    #
+#   3. Look for user-started modmail threads with 'ban' in title      #
+#   4. Tell the user to reply to their original ban message           #
 #                                                                     #
 # ################################################################### #
 
 # imports
 import praw
-import redis # requires redis-server
 
 import logging
 from time import strftime
+from requests.exceptions import HTTPError
 from configparser import ConfigParser
 
 # global reddit session
 r = None
 
-# read config file & set variables
 config = ConfigParser()
 config.read('config.ini')
 
@@ -32,9 +29,7 @@ username   = config.get('reddit', 'username')
 password   = config.get('reddit', 'password')
 user_agent = username + ' by ' + owner + ' version ' + version
 
-# initialize logging & database
-logging.basicConfig(filename='/home/michael/py/bots/ban_archiver/bot.log')
-link_database = redis.Redis(host='localhost', db=0)
+logging.basicConfig(filename='/home/michael/py/bots/ban_archiver/bot.log', level=logging.INFO)
 
 # ################################################################### #
 
@@ -50,32 +45,18 @@ def read_modmail():
         if 'ban' in msg.subject:
             logging.info('Message found, processing')
             
-            # these two lines grab the mods from the banning subreddit
             sub = r.get_subreddit(subreddit)
             moderators = sub.get_moderators()
             
-            # if it is a moderator-generated ban message, store subreddit & link id
-            if (subject == "you've been banned" and author in moderators):
-                link_database.set(user, link_id)
-                logging.info('Adding {0} to database (id: {1})'.format(user, link_id))
-                continue
-                
-            # if it is a user-generated ban message, reply with link to ban message
-            elif author not in moderators:
-                # skip message if there is a response
+            if not (subject == "you've been banned" and author in moderators):
                 if msg.replies: 
                     continue
 
-                # set up reply to user
-                reply = 'Please reply to your original ban message'
-                if link_database.get(author) != None:
-                    link_stripped = str(link_database.get(author))[2:-1]
-                    reply = reply + ': [Permalink](//reddit.com/message/messages/' + link_stripped + ')'
-                else:
-                    reply = reply + '.'
-                reply = reply + '\n\n*This is an automated message. If this message was received incorrectly, please disregard it.*'
+                reply = ''''If you believe you are banned, please reply to your original ban message.\n\n 
+                            This can be found [in your inbox](//reddit.com/message/inbox),
+                            and will say "You have been banned from posting to /r/AskReddit [...]."'''
+                reply += '\n\n*This is an automated message. If this message was received incorrectly, please ignore.*'
                 
-                # reply to the message
                 logging.info('Sending reply to user')
                 msg.reply(reply)
 
@@ -84,22 +65,36 @@ def read_modmail():
 def main():
     global r
     
-    # log into reddit
     while True:
         try:
             r = praw.Reddit(user_agent)
             r.login(username, password)
             logging.info('Logging in as {0}'.format(username))
             print('Logged in')
+            r.message('noahjk', 'ban_archiver is running', 'ban_archiver is running')
             break
         except Exception as e:
             logging.error('ERROR: {0}'.format(e))
             print('Unable to log in')
     
-    # start reading modmail
-    print('Reading modmail')
-    read_modmail()
+    keep_going = True
+    while keep_going:
+        try:
+        
+            print('Reading modmail')
+            read_modmail()
+        
+        except HTTPError as e:
+            time.sleep(30)
+            continue
+        except (KeyboardInterrupt, SystemExit):
+            keep_going = False
+            logging.info('Ended by user input')
+            pass
+        except Exception as e:
+            logging.error('ERROR: {0}'.format(e))
+            r.send_message('noahjk', 'ban_archiver went down', 'ban_archiver is down. reply with "restart" to restart.')
+            break
 
-# only run main() if called from interpreter
 if __name__ == '__main__':
     main()
