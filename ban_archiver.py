@@ -42,20 +42,20 @@ def read_modmail():
         user = str(msg.dest)
         print('Reading message...')
 
-        if 'ban' in msg.subject:
+        if 'ban' in msg.subject.lower():
             logging.info('Message found, processing')
             
             sub = r.get_subreddit(subreddit)
             moderators = sub.get_moderators()
             
-            if not (subject == "you've been banned" and author in moderators):
+            if not (subject == "you've been banned" or author in moderators):
                 if msg.replies: 
                     continue
 
-                reply = '''If you believe you are banned, please reply to your original ban message.\n\n 
-                            This can be found [in your inbox](//reddit.com/message/inbox),
-                            and will say "You have been banned from posting to /r/AskReddit [...]."\n\n---
-                            \n\n*This is an automated message. If this message was received incorrectly, please ignore.*'''
+                reply = ('If you believe you are banned, please reply to your original ban message.'
+                        '\n\nThis can be found [in your inbox](//reddit.com/message/inbox), '
+                        'and will say `"You have been banned from posting to /r/AskReddit [...]."`\n\n---'
+                        '\n\n*This is an automated message. If this message was received incorrectly, please ignore.*')
                 
                 logging.info('Sending reply to user')
                 msg.reply(reply)
@@ -71,7 +71,6 @@ def main():
             r.login(username, password)
             logging.info('Logging in as {0}'.format(username))
             print('Logged in')
-            r.send_message('noahjk', 'ban_archiver is running', 'ban_archiver is running')
             break
         except Exception as e:
             logging.error('ERROR: {0}'.format(e))
